@@ -2,7 +2,6 @@
 #include <vector>
 #include <string>
 #include <algorithm>
-#include <iomanip>
 
 using namespace std;
 
@@ -19,6 +18,7 @@ void showTotalWaitTime(const vector<Ride>& rides);
 void suggestBestOrder(vector<Ride> rides);
 void updateWaitTime(vector<Ride>& rides);
 void updatePriority(vector<Ride>& rides);
+void suggestTimeOfDayStrategy(vector<Ride> rides);
 string getPriorityLabel(int priority);
 
 int main() {
@@ -51,13 +51,16 @@ int main() {
             updatePriority(rides);
             break;
         case 6:
+            suggestTimeOfDayStrategy(rides);
+            break;
+        case 7:
             cout << "May the Force be with you!\n";
             break;
         default:
             cout << "Invalid option. Try again.\n";
         }
 
-    } while (choice != 6);
+    } while (choice != 7);
 
     return 0;
 }
@@ -69,7 +72,8 @@ void showMenu() {
     cout << "3. Suggest best ride order\n";
     cout << "4. Update wait time\n";
     cout << "5. Update ride priority\n";
-    cout << "6. Exit\n";
+    cout << "6. Time-of-day strategy\n";
+    cout << "7. Exit\n";
     cout << "Choose an option: ";
 }
 
@@ -162,6 +166,56 @@ void updatePriority(vector<Ride>& rides) {
     rides[rideChoice - 1].priority = newPriority;
 
     cout << "Priority updated successfully.\n";
+}
+
+void suggestTimeOfDayStrategy(vector<Ride> rides) {
+    int timeChoice;
+
+    cout << "\n===== Time-of-Day Strategy =====\n";
+    cout << "1. Morning\n";
+    cout << "2. Afternoon\n";
+    cout << "3. Evening\n";
+    cout << "Choose time of day: ";
+    cin >> timeChoice;
+
+    if (timeChoice == 1) {
+        sort(rides.begin(), rides.end(), [](const Ride& a, const Ride& b) {
+            if (a.name == "Star Wars: Rise of the Resistance") return true;
+            if (b.name == "Star Wars: Rise of the Resistance") return false;
+            return a.waitTime < b.waitTime;
+            });
+
+        cout << "\nMorning Strategy: Ride Rise of the Resistance early.\n";
+    }
+    else if (timeChoice == 2) {
+        sort(rides.begin(), rides.end(), [](const Ride& a, const Ride& b) {
+            return a.waitTime < b.waitTime;
+            });
+
+        cout << "\nAfternoon Strategy: Choose the shortest wait first.\n";
+    }
+    else if (timeChoice == 3) {
+        sort(rides.begin(), rides.end(), [](const Ride& a, const Ride& b) {
+            if (a.priority == b.priority) {
+                return a.waitTime < b.waitTime;
+            }
+            return a.priority < b.priority;
+            });
+
+        cout << "\nEvening Strategy: Prioritize must-ride attractions before park closing.\n";
+    }
+    else {
+        cout << "Invalid time selection.\n";
+        return;
+    }
+
+    cout << "\n===== Recommended Order =====\n";
+
+    for (size_t i = 0; i < rides.size(); i++) {
+        cout << i + 1 << ". " << rides[i].name
+            << " - " << rides[i].waitTime << " minutes"
+            << " - " << getPriorityLabel(rides[i].priority) << endl;
+    }
 }
 
 string getPriorityLabel(int priority) {

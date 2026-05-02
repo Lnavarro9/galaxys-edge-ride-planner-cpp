@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="galaxys-edge-ride-planner-cpp/galaxys-edge-ride-planner-cpp.vcxproj" />
+</Solution>

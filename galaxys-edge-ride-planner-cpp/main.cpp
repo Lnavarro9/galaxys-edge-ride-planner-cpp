@@ -2,7 +2,8 @@
 #include <vector>
 #include <string>
 #include <fstream>
-#include <iomanip>
+#include <algorithm>
+
 using namespace std;
 
 struct Ride {
@@ -12,7 +13,92 @@ struct Ride {
     int priority;
 };
 
-// ================= SAVE =================
+string getPriorityLabel(int priority);
+void saveRides(const vector<Ride>& rides);
+void loadRides(vector<Ride>& rides);
+void viewRides(const vector<Ride>& rides);
+void showTotalWaitTime(const vector<Ride>& rides);
+void suggestBestRideOrder(vector<Ride> rides);
+void updateWaitTime(vector<Ride>& rides);
+void updatePriority(vector<Ride>& rides);
+void timeOfDayStrategy(vector<Ride> rides);
+void showMenu();
+
+int main() {
+    vector<Ride> rides;
+
+    loadRides(rides);
+
+    if (rides.empty()) {
+        rides = {
+            {"Star Wars: Rise of the Resistance", "Galaxy's Edge", 75, 1},
+            {"Millennium Falcon: Smugglers Run", "Galaxy's Edge", 45, 2}
+        };
+        saveRides(rides);
+    }
+
+    int choice;
+
+    do {
+        showMenu();
+        cin >> choice;
+
+        switch (choice) {
+        case 1:
+            viewRides(rides);
+            break;
+        case 2:
+            showTotalWaitTime(rides);
+            break;
+        case 3:
+            suggestBestRideOrder(rides);
+            break;
+        case 4:
+            updateWaitTime(rides);
+            break;
+        case 5:
+            updatePriority(rides);
+            break;
+        case 6:
+            timeOfDayStrategy(rides);
+            break;
+        case 7:
+            cout << "May the Force be with you!\n";
+            break;
+        default:
+            cout << "Invalid option. Try again.\n";
+        }
+
+    } while (choice != 7);
+
+    return 0;
+}
+
+void showMenu() {
+    cout << "\n===== Galaxy's Edge Ride Planner =====\n";
+    cout << "1. View rides\n";
+    cout << "2. Show total wait time\n";
+    cout << "3. Suggest best ride order\n";
+    cout << "4. Update wait time\n";
+    cout << "5. Update ride priority\n";
+    cout << "6. Time-of-day strategy\n";
+    cout << "7. Exit\n";
+    cout << "Choose an option: ";
+}
+
+string getPriorityLabel(int priority) {
+    switch (priority) {
+    case 1:
+        return "Must Ride";
+    case 2:
+        return "Nice to Ride";
+    case 3:
+        return "Optional";
+    default:
+        return "Unknown";
+    }
+}
+
 void saveRides(const vector<Ride>& rides) {
     ofstream file("rides.txt");
 
@@ -26,113 +112,116 @@ void saveRides(const vector<Ride>& rides) {
     file.close();
 }
 
-// ================= LOAD =================
 void loadRides(vector<Ride>& rides) {
     ifstream file("rides.txt");
 
-    if (!file) return;
+    if (!file.is_open()) {
+        return;
+    }
 
     rides.clear();
 
-    string name, land, waitStr, priorityStr;
+    string name, land, waitTimeText, priorityText;
 
     while (getline(file, name, '|') &&
         getline(file, land, '|') &&
-        getline(file, waitStr, '|') &&
-        getline(file, priorityStr)) {
+        getline(file, waitTimeText, '|') &&
+        getline(file, priorityText)) {
 
-        Ride r;
-        r.name = name;
-        r.land = land;
-        r.waitTime = stoi(waitStr);
-        r.priority = stoi(priorityStr);
+        Ride ride;
+        ride.name = name;
+        ride.land = land;
+        ride.waitTime = stoi(waitTimeText);
+        ride.priority = stoi(priorityText);
 
-        rides.push_back(r);
+        rides.push_back(ride);
     }
 
     file.close();
 }
 
-// ================= VIEW =================
 void viewRides(const vector<Ride>& rides) {
     cout << "\n===== Available Rides =====\n";
 
     for (int i = 0; i < rides.size(); i++) {
         cout << i + 1 << ". " << rides[i].name << endl;
         cout << "   Land: " << rides[i].land << endl;
-        cout << "   Wait Time: " << rides[i].waitTime << " minutes" << endl;
-        cout << "   Priority: " << rides[i].priority << endl;
+        cout << "   Wait Time: " << rides[i].waitTime << " minutes\n";
+        cout << "   Priority: " << getPriorityLabel(rides[i].priority) << endl;
     }
 }
 
-// ================= TOTAL WAIT =================
-void showTotalWait(const vector<Ride>& rides) {
+void showTotalWaitTime(const vector<Ride>& rides) {
     int total = 0;
 
-    for (const Ride& r : rides) {
-        total += r.waitTime;
+    for (const Ride& ride : rides) {
+        total += ride.waitTime;
     }
 
-    cout << "\nTotal Wait Time: " << total << " minutes\n";
+    cout << "\nTotal wait time: " << total << " minutes\n";
 }
 
-// ================= BEST ORDER =================
-void suggestBestOrder(vector<Ride> rides) {
-    // Sort by wait time (simple bubble sort for learning)
-    for (int i = 0; i < rides.size(); i++) {
-        for (int j = i + 1; j < rides.size(); j++) {
-            if (rides[j].waitTime < rides[i].waitTime) {
-                swap(rides[i], rides[j]);
-            }
+void suggestBestRideOrder(vector<Ride> rides) {
+    sort(rides.begin(), rides.end(), [](const Ride& a, const Ride& b) {
+        if (a.priority != b.priority) {
+            return a.priority < b.priority;
         }
-    }
 
-    cout << "\n===== Suggested Ride Order =====\n";
+        return a.waitTime < b.waitTime;
+        });
+
+    cout << "\n===== Optimized Ride Order =====\n";
+
     for (int i = 0; i < rides.size(); i++) {
         cout << i + 1 << ". " << rides[i].name
-            << " - " << rides[i].waitTime << " minutes\n";
+            << " - " << rides[i].waitTime << " minutes"
+            << " - " << getPriorityLabel(rides[i].priority) << endl;
     }
 }
 
-// ================= UPDATE WAIT =================
 void updateWaitTime(vector<Ride>& rides) {
-    int choice, newTime;
+    int rideChoice;
+    int newWaitTime;
 
     viewRides(rides);
 
     cout << "\nWhich ride would you like to update? ";
-    cin >> choice;
+    cin >> rideChoice;
 
-    if (choice < 1 || choice > rides.size()) {
-        cout << "Invalid choice.\n";
+    if (rideChoice < 1 || rideChoice > rides.size()) {
+        cout << "Invalid ride selection.\n";
         return;
     }
 
-    cout << "Enter new wait time: ";
-    cin >> newTime;
+    cout << "Enter new wait time in minutes: ";
+    cin >> newWaitTime;
 
-    rides[choice - 1].waitTime = newTime;
+    rides[rideChoice - 1].waitTime = newWaitTime;
 
-    saveRides(rides); // 🔥 SAVE
+    saveRides(rides);
 
-    cout << "Wait time updated!\n";
+    cout << "Wait time updated successfully.\n";
 }
 
-// ================= UPDATE PRIORITY =================
 void updatePriority(vector<Ride>& rides) {
-    int choice, newPriority;
+    int rideChoice;
+    int newPriority;
 
     viewRides(rides);
 
-    cout << "\nWhich ride priority do you want to change? ";
-    cin >> choice;
+    cout << "\nWhich ride would you like to update priority for? ";
+    cin >> rideChoice;
 
-    if (choice < 1 || choice > rides.size()) {
-        cout << "Invalid choice.\n";
+    if (rideChoice < 1 || rideChoice > rides.size()) {
+        cout << "Invalid ride selection.\n";
         return;
     }
 
-    cout << "Enter priority (1 = Must Ride, 2 = Nice, 3 = Optional): ";
+    cout << "\nPriority Options:\n";
+    cout << "1. Must Ride\n";
+    cout << "2. Nice to Ride\n";
+    cout << "3. Optional\n";
+    cout << "Choose priority: ";
     cin >> newPriority;
 
     if (newPriority < 1 || newPriority > 3) {
@@ -140,64 +229,62 @@ void updatePriority(vector<Ride>& rides) {
         return;
     }
 
-    rides[choice - 1].priority = newPriority;
+    rides[rideChoice - 1].priority = newPriority;
 
-    saveRides(rides); // 🔥 SAVE
+    saveRides(rides);
 
-    cout << "Priority updated!\n";
+    cout << "Priority updated successfully.\n";
 }
 
-// ================= MAIN =================
-int main() {
-    vector<Ride> rides;
+void timeOfDayStrategy(vector<Ride> rides) {
+    int timeChoice;
 
-    loadRides(rides);
+    cout << "\n===== Time-of-Day Strategy =====\n";
+    cout << "1. Morning\n";
+    cout << "2. Afternoon\n";
+    cout << "3. Evening\n";
+    cout << "Choose time of day: ";
+    cin >> timeChoice;
 
-    // If no file yet → default rides
-    if (rides.empty()) {
-        rides = {
-            {"Star Wars: Rise of the Resistance", "Galaxy's Edge", 75, 1},
-            {"Millennium Falcon: Smugglers Run", "Galaxy's Edge", 45, 2}
-        };
+    if (timeChoice == 1) {
+        cout << "\nMorning Strategy: Start with the highest-priority ride, then shortest wait.\n";
+
+        sort(rides.begin(), rides.end(), [](const Ride& a, const Ride& b) {
+            if (a.priority != b.priority) {
+                return a.priority < b.priority;
+            }
+
+            return a.waitTime < b.waitTime;
+            });
+    }
+    else if (timeChoice == 2) {
+        cout << "\nAfternoon Strategy: Choose the shortest wait first to reduce total waiting.\n";
+
+        sort(rides.begin(), rides.end(), [](const Ride& a, const Ride& b) {
+            return a.waitTime < b.waitTime;
+            });
+    }
+    else if (timeChoice == 3) {
+        cout << "\nEvening Strategy: Prioritize must-ride attractions before park closing.\n";
+
+        sort(rides.begin(), rides.end(), [](const Ride& a, const Ride& b) {
+            if (a.priority != b.priority) {
+                return a.priority < b.priority;
+            }
+
+            return a.waitTime < b.waitTime;
+            });
+    }
+    else {
+        cout << "Invalid time selection.\n";
+        return;
     }
 
-    int choice;
+    cout << "\n===== Recommended Order =====\n";
 
-    do {
-        cout << "\n===== Galaxy's Edge Ride Planner =====\n";
-        cout << "1. View rides\n";
-        cout << "2. Show total wait time\n";
-        cout << "3. Suggest best ride order\n";
-        cout << "4. Update wait time\n";
-        cout << "5. Update priority\n";
-        cout << "6. Exit\n";
-        cout << "Choose an option: ";
-        cin >> choice;
-
-        switch (choice) {
-        case 1:
-            viewRides(rides);
-            break;
-        case 2:
-            showTotalWait(rides);
-            break;
-        case 3:
-            suggestBestOrder(rides);
-            break;
-        case 4:
-            updateWaitTime(rides);
-            break;
-        case 5:
-            updatePriority(rides);
-            break;
-        case 6:
-            cout << "Goodbye!\n";
-            break;
-        default:
-            cout << "Invalid option.\n";
-        }
-
-    } while (choice != 6);
-
-    return 0;
+    for (int i = 0; i < rides.size(); i++) {
+        cout << i + 1 << ". " << rides[i].name
+            << " - " << rides[i].waitTime << " minutes"
+            << " - " << getPriorityLabel(rides[i].priority) << endl;
+    }
 }
